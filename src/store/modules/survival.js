@@ -150,8 +150,80 @@ const BUILDINGS = {
   }
 };
 
+const STORAGE_KEY = 'island_survival_state';
+
+const loadState = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const buildings = { ...BUILDINGS };
+      if (parsed.buildings) {
+        Object.keys(parsed.buildings).forEach(key => {
+          if (buildings[key]) {
+            buildings[key].built = parsed.buildings[key].built || false;
+          }
+        });
+      }
+      return {
+        day: parsed.day || 1,
+        gameTime: parsed.gameTime || 8,
+        timeSpeed: parsed.timeSpeed || 1,
+        isPaused: parsed.isPaused || false,
+        timePeriod: parsed.timePeriod || TIME_PERIODS.DAY,
+        season: parsed.season || SEASONS.SPRING,
+        weather: parsed.weather || WEATHER_TYPES.SUNNY,
+        resources: parsed.resources || { food: 100, water: 100, wood: 100, stone: 100 },
+        maxResources: parsed.maxResources || { food: 200, water: 200, wood: 200, stone: 200 },
+        buildings,
+        guards: parsed.guards || [],
+        maxGuards: parsed.maxGuards || 3,
+        currentNightEvent: null,
+        eventLog: parsed.eventLog || [],
+        defense: parsed.defense || 0,
+        warmth: parsed.warmth || 0,
+        lightLevel: parsed.lightLevel || 0
+      };
+    }
+  } catch (e) {
+    console.error('Failed to load saved state:', e);
+  }
+  return null;
+};
+
+const saveState = (state) => {
+  try {
+    const toSave = {
+      day: state.day,
+      gameTime: state.gameTime,
+      timeSpeed: state.timeSpeed,
+      isPaused: state.isPaused,
+      timePeriod: state.timePeriod,
+      season: state.season,
+      weather: state.weather,
+      resources: state.resources,
+      maxResources: state.maxResources,
+      buildings: {},
+      guards: state.guards,
+      maxGuards: state.maxGuards,
+      eventLog: state.eventLog,
+      defense: state.defense,
+      warmth: state.warmth,
+      lightLevel: state.lightLevel
+    };
+    Object.keys(state.buildings).forEach(key => {
+      toSave.buildings[key] = { built: state.buildings[key].built };
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    console.error('Failed to save state:', e);
+  }
+};
+
+const initialState = loadState();
+
 export default defineStore('survival', {
-  state: () => ({
+  state: () => initialState || {
     day: 1,
     gameTime: 8,
     timeSpeed: 1,
@@ -179,7 +251,7 @@ export default defineStore('survival', {
     defense: 0,
     warmth: 0,
     lightLevel: 0
-  }),
+  },
 
   getters: {
     isNight: (state) => state.timePeriod === TIME_PERIODS.NIGHT,
@@ -340,6 +412,8 @@ export default defineStore('survival', {
       } else if (wasNight && !this.isNight) {
         this.onNightEnd();
       }
+      
+      saveState(this.$state);
     },
 
     updateSeason() {
@@ -368,7 +442,7 @@ export default defineStore('survival', {
       for (const [weather, prob] of Object.entries(seasonMod)) {
         cumulative += prob;
         if (rand < cumulative) {
-          this.weather = weather.toUpperCase();
+          this.weather = weather;
           break;
         }
       }
@@ -511,6 +585,7 @@ export default defineStore('survival', {
         onDuty: true
       });
       this.defense = this.totalDefense;
+      saveState(this.$state);
       return { success: true, message: `${guard.name}已加入守卫队伍` };
     },
 
@@ -520,6 +595,7 @@ export default defineStore('survival', {
         const guard = this.guards[index];
         this.guards.splice(index, 1);
         this.defense = this.totalDefense;
+        saveState(this.$state);
         return { success: true, message: `${guard.name}已离开守卫队伍` };
       }
       return { success: false, message: '未找到该守卫' };
@@ -530,6 +606,7 @@ export default defineStore('survival', {
       if (guard) {
         guard.onDuty = !guard.onDuty;
         this.defense = this.totalDefense;
+        saveState(this.$state);
         return { success: true, message: guard.onDuty ? `${guard.name}开始值守` : `${guard.name}休息中` };
       }
       return { success: false, message: '未找到该守卫' };
@@ -556,6 +633,7 @@ export default defineStore('survival', {
       this.defense = this.totalDefense;
       this.warmth = this.totalWarmth;
       this.lightLevel = this.totalLight;
+      saveState(this.$state);
       
       return { success: true, message: `${building.name}建造完成！` };
     },
@@ -646,21 +724,21 @@ export default defineStore('survival', {
 
     getWeatherName() {
       const names = {
-        SUNNY: '晴朗',
-        CLOUDY: '多云',
-        RAINY: '雨天',
-        STORMY: '暴风雨',
-        FOGGY: '雾天'
+        sunny: '晴朗',
+        cloudy: '多云',
+        rainy: '雨天',
+        stormy: '暴风雨',
+        foggy: '雾天'
       };
       return names[this.weather] || this.weather;
     },
 
     getSeasonName() {
       const names = {
-        SPRING: '春季',
-        SUMMER: '夏季',
-        AUTUMN: '秋季',
-        WINTER: '冬季'
+        spring: '春季',
+        summer: '夏季',
+        autumn: '秋季',
+        winter: '冬季'
       };
       return names[this.season] || this.season;
     },
@@ -680,6 +758,7 @@ export default defineStore('survival', {
     },
 
     resetGame() {
+      localStorage.removeItem(STORAGE_KEY);
       this.day = 1;
       this.gameTime = 8;
       this.timePeriod = TIME_PERIODS.DAY;
@@ -691,7 +770,11 @@ export default defineStore('survival', {
       this.currentNightEvent = null;
       this.eventLog = [];
       this.isPaused = false;
+      this.defense = 0;
+      this.warmth = 0;
+      this.lightLevel = 0;
       this.updateTimePeriod();
+      saveState(this.$state);
     }
   }
 });

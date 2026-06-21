@@ -123,12 +123,12 @@ const formattedTime = computed(() => {
 });
 
 const seasonIcon = computed(() => {
-  const icons = { SPRING: '🌸', SUMMER: '☀️', AUTUMN: '🍂', WINTER: '❄️' };
+  const icons = { spring: '🌸', summer: '☀️', autumn: '🍂', winter: '❄️' };
   return icons[survivalStore.season] || '🌸';
 });
 
 const weatherIcon = computed(() => {
-  const icons = { SUNNY: '☀️', CLOUDY: '⛅', RAINY: '🌧️', STORMY: '⛈️', FOGGY: '🌫️' };
+  const icons = { sunny: '☀️', cloudy: '⛅', rainy: '🌧️', stormy: '⛈️', foggy: '🌫️' };
   return icons[survivalStore.weather] || '☀️';
 });
 

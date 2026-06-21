@@ -408,6 +408,9 @@ const mapGrid = ref([
 ]);
 
 const displayLogs = computed(() => {
+  if (!survivalStore.eventLog || !Array.isArray(survivalStore.eventLog)) {
+    return [];
+  }
   return survivalStore.eventLog.slice().reverse();
 });
 
@@ -430,6 +433,7 @@ const canAfford = (cost) => {
 };
 
 const isImportantLog = (log) => {
+  if (!log || !log.content) return false;
   return log.content.includes('事件') || 
          log.content.includes('袭击') || 
          log.content.includes('危险') ||

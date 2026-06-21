@@ -175,7 +175,10 @@ const isNight = computed(() => survivalStore.isNight);
 const hasEnoughWoodForBonfire = computed(() => survivalStore.resources.wood >= 20);
 
 const defenseBuildings = computed(() => {
-  return survivalStore.builtBuildings.filter(b => b.defense || b.warmth || b.light);
+  if (!survivalStore.builtBuildings || !Array.isArray(survivalStore.builtBuildings)) {
+    return [];
+  }
+  return survivalStore.builtBuildings.filter(b => b && (b.defense || b.warmth || b.light));
 });
 
 const guardTypes = {
